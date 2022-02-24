@@ -2,8 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"os"
 	"reflect"
-	"sync"
 	"testing"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
@@ -11,28 +11,34 @@ import (
 )
 
 func getTrue() *bool {
-	b := true
-	return &b
+	t := true
+	return &t
 }
 
 func getFalse() *bool {
-	b := false
-	return &b
+	t := false
+	return &t
+}
+
+func getAdvertisedStartTimeFieldName() string {
+	s := "advertised_start_time"
+	return s
 }
 
 func Test_racesRepo_applyFilter(t *testing.T) {
 	type fields struct {
-		db   *sql.DB
+		db *sql.DB
 	}
 	type args struct {
-		query  string
-		filter *racing.ListRacesRequestFilter
+		query     string
+		filter    *racing.ListRacesRequestFilter
+		configVal *Configuration
 	}
 	if os.Getenv("CONFIG_FILE") == "" {
 		os.Setenv("CONFIG_FILE", "../config.json")
 	}
 	advertisedStartTime := getAdvertisedStartTimeFieldName()
-	configVal := getConfigValue(os.Getenv("CONFIG_FILE"))
+	configValues := getConfigValue(os.Getenv("CONFIG_FILE"))
 	tests := []struct {
 		name   string
 		fields fields
@@ -46,7 +52,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			args: args{
 				query:     "select * from races",
 				filter:    &racing.ListRacesRequestFilter{},
-				configVal: configVal,
+				configVal: configValues,
 			},
 			want:  "select * from races",
 			want1: nil,
@@ -56,7 +62,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races where ",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					MeetingIds: []int64{6, 8},
 				},
@@ -72,7 +78,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races where ",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					Visible: getTrue(),
 				},
@@ -88,7 +94,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races where ",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					Visible: getFalse(),
 				},
@@ -104,7 +110,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races where ",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					MeetingIds: []int64{3},
 					Visible:    getFalse(),
@@ -121,7 +127,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 				},
@@ -133,7 +139,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 					MeetingIds:  []int64{6, 8},
@@ -151,7 +157,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: nil,
 					MeetingIds:  []int64{3},
@@ -169,7 +175,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 					MeetingIds:  []int64{6, 8},
@@ -187,7 +193,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: nil,
 					MeetingIds:  []int64{3},
@@ -205,7 +211,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 					MeetingIds:  []int64{3},
@@ -223,7 +229,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 					MeetingIds:  []int64{3},
@@ -241,7 +247,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			fields: fields{},
 			args: args{
 				query:     "select * from races",
-				configVal: configVal,
+				configVal: configValues,
 				filter: &racing.ListRacesRequestFilter{
 					SortByField: &advertisedStartTime,
 					MeetingIds:  []int64{6, 8},
@@ -258,8 +264,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &racesRepo{
-				db:   tt.fields.db,
-				init: tt.fields.init,
+				db: tt.fields.db,
 			}
 			got, got1 := r.applyFilter(tt.args.query, tt.args.filter, tt.args.configVal)
 			if got != tt.want {
