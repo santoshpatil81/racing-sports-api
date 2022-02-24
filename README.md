@@ -68,6 +68,26 @@ curl -X "POST" "http://localhost:8000/v1/list-races" \
 }'
 ```
 
+#### Examples of various requests
+
+1. Filter using Meeting IDs
+```{"filter": {"meeting_ids": [1,2]}}```
+
+2. Filter using visible
+```{"filter": {"visible": true}}```
+
+3. Sort and order by
+```{"filter": {"sort_by_field" : "advertised_start_time","order_by": "asc"}}```
+```{"filter": {"sort_by_field" : "status","order_by": "desc"}}```
+The `order_by` option is optional
+```{"filter": {"sort_by_field" : "advertised_start_time"}}```
+For the `sort_by_field` and `order_by` we can defined the list of allowable values in `config.json`. Below is an example of `config.json`
+```{
+  "SortBy": ["advertised_start_time","name"],
+  "OrderBy": ["asc","desc"]
+}
+```
+
 ### Changes/Updates Required
 
 - We'd like to see you push this repository up to **GitHub/Gitlab/Bitbucket** and lodge a **Pull/Merge Request for each** of the below tasks.

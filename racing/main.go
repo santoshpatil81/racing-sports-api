@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"os"
 
 	"git.neds.sh/matty/entain/racing/db"
 	"git.neds.sh/matty/entain/racing/proto/racing"
@@ -18,6 +19,10 @@ var (
 
 func main() {
 	flag.Parse()
+
+	if os.Getenv("CONFIG_FILE") == "" {
+		os.Setenv("CONFIG_FILE", "config.json")
+	}
 
 	if err := run(); err != nil {
 		log.Fatalf("failed running grpc server: %s\n", err)
