@@ -25,6 +25,11 @@ func getAdvertisedStartTimeFieldName() string {
 	return s
 }
 
+func getStatusFieldName() string {
+	s := "status"
+	return s
+}
+
 func Test_racesRepo_applyFilter(t *testing.T) {
 	type fields struct {
 		db *sql.DB
@@ -38,6 +43,7 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 		os.Setenv("CONFIG_FILE", "../config.json")
 	}
 	advertisedStartTime := getAdvertisedStartTimeFieldName()
+	status := getStatusFieldName()
 	configValues := getConfigValue(os.Getenv("CONFIG_FILE"))
 	tests := []struct {
 		name   string
@@ -255,6 +261,54 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 				},
 			},
 			want: "select * from races WHERE meeting_id IN (?,?) AND visible=false order by advertised_start_time",
+			want1: func() []interface{} {
+				var ret []interface{}
+				return append(ret, int64(6), int64(8), false)
+			}(),
+		},
+		{
+			name:   "TEST014: sort by status",
+			fields: fields{},
+			args: args{
+				query:     "select * from races",
+				configVal: configValues,
+				filter: &racing.ListRacesRequestFilter{
+					SortByField: &status,
+				},
+			},
+			want: "select * from races order by status",
+		},
+		{
+			name:   "TEST015: sort by status and order by descending",
+			fields: fields{},
+			args: args{
+				query:     "select * from races",
+				configVal: configValues,
+				filter: &racing.ListRacesRequestFilter{
+					SortByField: &status,
+					MeetingIds:  []int64{3},
+					Visible:     getFalse(),
+				},
+			},
+			want: "select * from races WHERE meeting_id IN (?) AND visible=false order by status",
+			want1: func() []interface{} {
+				var ret []interface{}
+				return append(ret, int64(3), false)
+			}(),
+		},
+		{
+			name:   "TEST016: sort by status and order by ascending and meeting Ids is 6,8 and visible is false",
+			fields: fields{},
+			args: args{
+				query:     "select * from races",
+				configVal: configValues,
+				filter: &racing.ListRacesRequestFilter{
+					SortByField: &status,
+					MeetingIds:  []int64{6, 8},
+					Visible:     getFalse(),
+				},
+			},
+			want: "select * from races WHERE meeting_id IN (?,?) AND visible=false order by status",
 			want1: func() []interface{} {
 				var ret []interface{}
 				return append(ret, int64(6), int64(8), false)
