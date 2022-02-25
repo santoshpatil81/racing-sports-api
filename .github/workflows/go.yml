@@ -21,9 +21,14 @@ jobs:
     - name: Run go lint for racing
       run: cd racing && go vet .
 
+    - name: Run go lint for service
+      run: cd sports && go vet .
+
     - name: Run go lint for api
       run: cd api && go vet .
 
     - name: Unit Tests for racing
       run: cd racing/db && go test -v ./...
 
+    - name: Unit Tests for sports
+      run: cd sports/db && go test -v ./...
