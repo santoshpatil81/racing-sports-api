@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
-	"github.com/golang/protobuf/ptypes"
 	_ "github.com/mattn/go-sqlite3"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // RacesRepo provides repository access to races.
@@ -21,6 +21,8 @@ type RacesRepo interface {
 
 	// List will return a list of races.
 	List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error)
+	// Get race details returns details of race based on ID
+	GetRaceDetails(id int64) (*racing.Race, error)
 }
 
 type racesRepo struct {
@@ -64,6 +66,47 @@ func (r *racesRepo) Init() error {
 	})
 
 	return err
+}
+
+// GetRaceDetails returns the details of a race based on the ID provided
+func (r *racesRepo) GetRaceDetails(id int64) (*racing.Race, error) {
+	var (
+		err   error
+		query string
+		args  []interface{}
+	)
+
+	if id <= 0 {
+		var race racing.Race
+		return &race, err
+	}
+
+	query = getRaceQueries()[racesList]
+
+	query, args = r.applyGetRaceDetailsFilter(query, id)
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		var race racing.Race
+		return &race, err
+	}
+
+	var raceDetails racing.Race
+	id, meetingId, name, number, visible, advertisedStartTime, status, err := r.scanRace(rows)
+	raceDetails.Id = id
+	raceDetails.MeetingId = meetingId
+	raceDetails.Name = name
+	raceDetails.Number = number
+	raceDetails.Visible = visible
+	raceDetails.AdvertisedStartTime = timestamppb.New(advertisedStartTime)
+	raceDetails.Status = status
+
+	if err != nil {
+		var race racing.Race
+		return &race, err
+	}
+
+	return &raceDetails, nil
 }
 
 // List returns a list of matching races based on the criteria specified in the body of the request
@@ -155,6 +198,24 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 	return query, args
 }
 
+// Search data based on Race ID
+func (r *racesRepo) applyGetRaceDetailsFilter(query string, id int64) (string, []interface{}) {
+	var (
+		clauses []string
+		args    []interface{}
+	)
+
+	if id > 0 {
+		clauses = append(clauses, "id="+strconv.FormatInt(id, 10))
+		args = append(args, id)
+
+		if len(clauses) != 0 {
+			query += " WHERE " + strings.Join(clauses, " AND ")
+		}
+	}
+	return query, args
+}
+
 // Scan rows returned by database and create a response object to send to ListRaces
 func (m *racesRepo) scanRaces(
 	rows *sql.Rows,
@@ -173,15 +234,30 @@ func (m *racesRepo) scanRaces(
 			return nil, err
 		}
 
-		ts, err := ptypes.TimestampProto(advertisedStart)
-		if err != nil {
-			return nil, err
-		}
-
-		race.AdvertisedStartTime = ts
+		race.AdvertisedStartTime = timestamppb.New(advertisedStart)
 
 		races = append(races, &race)
 	}
 
 	return races, nil
+}
+
+// Scan rows returned by database and create a response object to send to GetRaceDetails
+func (m *racesRepo) scanRace(
+	rows *sql.Rows,
+) (int64, int64, string, int64, bool, time.Time, string, error) {
+
+	var race racing.Race
+	var advertisedStart time.Time
+	for rows.Next() {
+		if err := rows.Scan(&race.Id, &race.MeetingId, &race.Name, &race.Number, &race.Visible, &advertisedStart, &race.Status); err != nil {
+			var t time.Time
+			if err == sql.ErrNoRows {
+				return -1, -1, "", -1, false, t, "", err
+			}
+			return -1, -1, "", -1, false, t, "", err
+		}
+	}
+
+	return race.Id, race.MeetingId, race.Name, race.Number, race.Visible, advertisedStart, race.Status, nil
 }

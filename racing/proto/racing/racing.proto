@@ -4,14 +4,22 @@ package racing;
 option go_package = "/racing";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 
 service Racing {
   // ListRaces will return a collection of all races.
-  rpc ListRaces(ListRacesRequest) returns (ListRacesResponse) {}
+  rpc ListRaces(ListRacesRequest) returns (ListRacesResponse) {
+    option (google.api.http) = { post: "/v1/list-races", body: "*" };
+  }
+  // Get race details based on ID 
+  rpc GetRaceDetails(GetRaceDetailsRequest) returns (GetRaceDetailsResponse) {
+    option (google.api.http) = {get: "/v1/get-race/{id}"};
+  }
 }
 
 /* Requests/Responses */
 
+// Request for ListRaces call
 message ListRacesRequest {
   ListRacesRequestFilter filter = 1;
 }
@@ -27,6 +35,16 @@ message ListRacesRequestFilter {
   optional bool visible = 2;
   optional string sort_by_field = 3;
   optional string order_by = 4;
+}
+
+// Request for GetDetails call
+message GetRaceDetailsRequest {
+  int64 id = 1;
+}
+
+// Response to GetRaceDetails call.
+message GetRaceDetailsResponse {
+  Race race = 1;
 }
 
 /* Resources */

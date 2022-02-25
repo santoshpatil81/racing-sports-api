@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func getTrue() *bool {
@@ -326,6 +325,71 @@ func Test_racesRepo_applyFilter(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("racesRepo.applyFilter() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func Test_racesRepo_applyGetRaceDetailsFilter(t *testing.T) {
+	type fields struct {
+		db *sql.DB
+	}
+	type args struct {
+		query string
+		id    int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   string
+		want1  []interface{}
+	}{
+		{
+			name:   "TEST001: No id is passed",
+			fields: fields{},
+			args: args{
+				query: "select * from races",
+				id:    int64(0),
+			},
+			want:  "select * from races",
+			want1: nil,
+		},
+		{
+			name:   "TEST002: id is 1",
+			fields: fields{},
+			args: args{
+				query: "select * from races",
+				id:    int64(1),
+			},
+			want: "select * from races WHERE id=1",
+			want1: func() []interface{} {
+				var ret []interface{}
+				return append(ret, int64(1))
+			}(),
+		},
+		{
+			name:   "TEST003: id is -100",
+			fields: fields{},
+			args: args{
+				query: "select * from races",
+				id:    int64(-100),
+			},
+			want:  "select * from races",
+			want1: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &racesRepo{
+				db: tt.fields.db,
+			}
+			got, got1 := r.applyGetRaceDetailsFilter(tt.args.query, tt.args.id)
+			if got != tt.want {
+				t.Errorf("racesRepo.applyGetRaceDetailsFilter() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("racesRepo.applyGetRaceDetailsFilter() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
