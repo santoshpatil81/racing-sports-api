@@ -68,6 +68,25 @@ curl -X "POST" "http://localhost:8000/v1/list-races" \
 }'
 ```
 
+5. In another terminal window, start our sports service...
+
+```bash
+cd ./sports
+
+go build && ./sports
+➜ INFO[0000] gRPC server listening on: localhost:9001
+```
+
+6. Make a request for sports... 
+
+```bash
+curl -X "POST" "http://localhost:8000/v1/list-sports" \
+     -H 'Content-Type: application/json' \
+     -d $'{
+  "filter": {}
+}'
+```
+
 #### Examples of various requests
 
 1. Filter using Meeting IDs
@@ -83,7 +102,7 @@ The `order_by` option is optional
 ```{"filter": {"sort_by_field" : "advertised_start_time"}}```
 For the `sort_by_field` and `order_by` we can defined the list of allowable values in `config.json`. Below is an example of `config.json`
 ```{
-  "SortBy": ["advertised_start_time","name"],
+  "SortBy": ["advertised_start_time","status"],
   "OrderBy": ["asc","desc"]
 }
 ```
