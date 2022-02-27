@@ -9,11 +9,11 @@ import "google/api/annotations.proto";
 service Sports {
   // ListSports returns a list of all sports.
   rpc ListSports(ListSportsRequest) returns (ListSportsResponse) {
-    option (google.api.http) = { post: "/v1/list-sports", body: "*" };
+    option (google.api.http) = { post: "/v1/list-events", body: "*" };
   }
   // GetSportDetails returns details of a single sports event
   rpc GetSportsEventDetails(GetSportsDetailsRequest) returns (GetSportsDetailsResponse) {
-    option (google.api.http) = {get: "/v1/get-sport/{id}"};
+    option (google.api.http) = {get: "/v1/get-event/{id}"};
   }
 }
 
